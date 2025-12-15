@@ -42,4 +42,4 @@ jobs:
     - name: Image digest
       run: |
         echo "AMD64 Image pushed with digest:"
-        docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/vlsi-toolbox:latest-amd64
+        docker buildx imagetools inspect ghcr.io/xelef2000/vlsi-toolbox:latest-amd64
