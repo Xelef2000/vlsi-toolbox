@@ -1,4 +1,4 @@
-name: Build and Publish vlsi-toolbox
+name: Build and Publish vlsi-toolbox (AMD64)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build-and-push-amd64:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,11 +17,6 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: all
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -33,20 +28,18 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-
-    - name: Build and push multi-arch image
+    - name: Build and push AMD64 image
       uses: docker/build-push-action@v4
       with:
-            context: .
-            file: ./Dockerfile
-            platforms: linux/amd64,linux/arm64
-            push: true
-            tags: |
-                ghcr.io/xelef2000/vlsi-toolbox:latest
-                ghcr.io/xelef2000/vlsi-toolbox:${{ github.sha }}
-
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64
+        push: true
+        tags: |
+          ghcr.io/xelef2000/vlsi-toolbox:latest-amd64
+          ghcr.io/xelef2000/vlsi-toolbox:${{ github.sha }}-amd64
 
     - name: Image digest
       run: |
-        echo "Image pushed with digest:"
-        docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/vlsi-toolbox:latest
+        echo "AMD64 Image pushed with digest:"
+        docker buildx imagetools inspect ghcr.io/${{ github.repository_owner }}/vlsi-toolbox:latest-amd64
