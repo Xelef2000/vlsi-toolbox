@@ -1,27 +1,31 @@
 # -----------------------
-# Fedora 43 VLSI Toolbox
+# Ubuntu 24.04 VLSI Toolbox (Multi-Arch: x86_64 & ARM64)
 # -----------------------
 
-FROM fedora:43
+FROM ubuntu:24.04
+
+# Expose the target architecture (amd64, arm64)
+ARG TARGETARCH
 
 LABEL org.opencontainers.image.title="vlsi-toolbox"
-LABEL org.opencontainers.image.description="Fedora-based VLSI/EDA toolbox for use with Distrobox"
-LABEL org.opencontainers.image.source="https://github.com/YOURUSER/vlsi-toolbox"
-LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.description="Ubuntu-based VLSI/EDA toolbox (x86/ARM) for use with Distrobox"
 
 # -----------------------
-# Enable RPM Fusion
+# Environment Configuration
 # -----------------------
-RUN dnf -y install \
-        https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-        https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64"
+ENV PATH="/usr/local/bin:$PATH"
 
 # -----------------------
 # Base development tools
 # -----------------------
-RUN dnf -y install \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        sudo \
+        g++ \
         gcc \
-        gcc-c++ \
         make \
         cmake \
         ninja-build \
@@ -30,37 +34,41 @@ RUN dnf -y install \
         curl \
         tar \
         unzip \
-        pkgconf \
-        which \
+        pkg-config \
         perl \
         python3 \
         python3-pip \
-        python3-setuptools \
-        python3-wheel \
-        python3-devel \
+        python3-dev \
+        python3-venv \
         nodejs \
         npm \
-        # java-17-openjdk-devel \
-        boost-devel \
-        readline-devel \
-        libffi-devel \
-        zlib-devel \
-        yosys \
-        yosys-devel \
+        libboost-all-dev \
+        libreadline-dev \
+        libffi-dev \
+        zlib1g-dev \
         tcl \
-        tcl-devel \
+        tcl-dev \
+        tk \
+        tk-dev \
         ruby \
-        ruby-devel \
-        libgit2-devel \
+        ruby-dev \
+        libgit2-dev \
         autoconf \
         automake \
-    && dnf -y clean all \
-    && rm -rf /var/cache/dnf
+        libtool \
+        bison \
+        flex \
+        libfl-dev \
+        gperf \
+        ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # -----------------------
-# Core VLSI / EDA tools
+# Core VLSI / EDA tools from Ubuntu repos
 # -----------------------
-RUN dnf -y install \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        yosys \
+        yosys-dev \
         iverilog \
         verilator \
         gtkterm \
@@ -68,16 +76,15 @@ RUN dnf -y install \
         magic \
         ngspice \
         ghdl \
-    && dnf -y clean all \
-    && rm -rf /var/cache/dnf
-
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # -----------------------
 # Haskell tooling
 # -----------------------
-RUN dnf -y install ghc stack \
-    && dnf -y clean all \
-    && rm -rf /var/cache/dnf
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ghc \
+        haskell-stack \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # -----------------------
 # Python-based tools
@@ -88,156 +95,146 @@ RUN pip3 install --no-cache-dir \
         yowasp-nextpnr-ice40
 
 # -----------------------
-# Bender (ETH Zurich)
+# Bender (ETH Zurich dependency manager)
 # -----------------------
-RUN curl -L https://github.com/pulp-platform/bender/releases/latest/download/bender-linux-amd64 \
-        -o /usr/local/bin/bender || true \
-    && curl -L https://github.com/pulp-platform/bender/releases/latest/download/bender-linux-arm64 \
-        -o /usr/local/bin/bender || true \
-    && chmod +x /usr/local/bin/bender || true
+WORKDIR /tmp
+RUN curl --proto '=https' --tlsv1.2 -sSf https://pulp-platform.github.io/bender/init | sh \
+    && install -m 0755 bender /usr/local/bin/bender \
+    && rm bender
 
+# # -----------------------
+# # Build HiGHS Solver from source
+# # (Missing in Ubuntu 24.04 repos, required for OpenROAD)
+# # -----------------------
+# RUN git clone https://github.com/ERGO-Code/HiGHS.git /opt/HiGHS \
+#     && cd /opt/HiGHS \
+#     && mkdir build \
+#     && cd build \
+#     && cmake .. \
+#         -DCMAKE_BUILD_TYPE=Release \
+#         -DCMAKE_INSTALL_PREFIX=/usr/local \
+#         -DFAST_BUILD=ON \
+#     && make -j$(nproc) \
+#     && make install \
+#     && ldconfig \
+#     && rm -rf /opt/HiGHS
+
+# # -----------------------
+# # Build CUDD from source
+# # (Required for OpenROAD/OpenSTA)
+# # -----------------------
+# RUN git clone https://github.com/The-OpenROAD-Project/cudd.git /opt/cudd \
+#     && cd /opt/cudd \
+#     && autoreconf -fiv \
+#     && ./configure \
+#         --enable-shared \
+#         --enable-obj \
+#         --enable-dddmp \
+#     && make -j$(nproc) \
+#     && make install \
+#     && ldconfig \
+#     && rm -rf /opt/cudd
+
+# # -----------------------
+# # Build OR-Tools from source
+# # -----------------------
+# RUN git config --global http.postBuffer 524288000 \
+#     && git config --global http.version HTTP/1.1 \
+#     && git clone https://github.com/google/or-tools.git /opt/or-tools \
+#     && cd /opt/or-tools \
+#     && git checkout tags/v9.11 -b build-v9.11 \
+#     && mkdir -p build \
+#     && cd build \
+#     && cmake .. \
+#         -DCMAKE_BUILD_TYPE=Release \
+#         -DCMAKE_CXX_STANDARD=20 \
+#         -DCMAKE_INSTALL_PREFIX=/usr/local \
+#         -DBUILD_DEPS=ON \
+#     && make -j$(nproc) \
+#     && make install \
+#     && ldconfig \
+#     && rm -rf /opt/or-tools
+
+# # -----------------------
+# # Build Spdlog
+# # -----------------------
+# RUN git clone https://github.com/gabime/spdlog.git /opt/spdlog \
+#     && cd /opt/spdlog \
+#     && git checkout v1.14.1 \
+#     && mkdir build \
+#     && cd build \
+#     && cmake .. \
+#         -DCMAKE_BUILD_TYPE=Release \
+#         -DCMAKE_INSTALL_PREFIX=/usr/local \
+#         -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+#         -DSPDLOG_BUILD_SHARED=ON \
+#         -DSPDLOG_FMT_EXTERNAL=OFF \
+#     && make -j$(nproc) \
+#     && make install \
+#     && ldconfig \
+#     && rm -rf /opt/spdlog
 
 # -----------------------
-# Dependencies for OpenROAD and OR-Tools
-# (Removed 'protobuf-devel' as it conflicts with OR-Tools' internal build)
+# Build OpenROAD from source
 # -----------------------
-RUN dnf -y install \
-        clang \
-        clang-devel \
-        llvm \
-        llvm-devel \
-        gcc-c++ \
-        cmake \
-        make \
-        swig \
-        boost-devel \
-        eigen3-devel \
-        tcl \
-        tcl-devel \
-        tk \
-        tk-devel \
-        zlib-devel \
-        readline-devel \
-        libffi-devel \
-        python3 \
-        python3-devel \
-        git \
-        gtest-devel \
-        spdlog-devel \
-        bison \
-        flex \
-        yaml-cpp-devel \
-        coin-or-lemon-devel \
-        abseil-cpp-devel \
-        scip \
-        libscip-devel \
-        libscip \
-        coin-or-CoinUtils-devel \
-        coin-or-Osi-devel \
-        coin-or-Clp-devel \
-        coin-or-Cgl-devel \
-        coin-or-Cbc-devel \
-        zlib-static \
-        coin-or-HiGHS-devel \
-        google-benchmark-devel \
-        libtool \
-        re2-devel \
-    && dnf -y clean all \
-    && rm -rf /var/cache/dnf
+# 1. Clone
+RUN git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git /opt/OpenROAD
 
-# -----------------------
-# Build and Install CUDD from source (Required for OpenROAD/OpenSTA)
-# RE-RUNNING to ensure a clean install
-# -----------------------
-RUN rm -rf /opt/cudd /usr/local/lib/libcudd.* /usr/local/include/cudd.h \
-    && git clone https://github.com/The-OpenROAD-Project/cudd.git /opt/cudd \
-    && cd /opt/cudd \
-    && autoreconf -fiv \ 
-    && ./configure \
-        --enable-shared \
-        --enable-obj \
-        --enable-dddmp \
-    && make -j$(nproc) \
-    && make install \
-    && rm -rf /opt/cudd
+WORKDIR /opt/OpenROAD
 
-# -----------------------
-# Build OR-Tools from source
-# (Added -DBUILD_DEPS=ON to use internal, compatible dependencies)
-# -----------------------
-RUN git config --global http.postBuffer 524288000 \ 
-    && git config --global http.version HTTP/1.1 \
-    && git clone https://github.com/google/or-tools.git /opt/or-tools \
-    && cd /opt/or-tools \
-    && git checkout tags/v9.11 -b build-v9.11 \
-    && mkdir -p build \
+# 2. Use Official Dependency Installer
+# This installs necessary libs (swig, eigen, lemon, etc) specifically for Ubuntu 24.04
+# We use -base and -common to cover all build requirements.
+RUN ./etc/DependencyInstaller.sh -base -common
+
+# 3. Build using the official helper script
+# We pass CMake flags to handle the GCC 13 strictness and disable LTO to prevent linker crashes.
+# -w: Suppress warnings
+# -fpermissive: Downgrade some errors to warnings (crucial for older codebases on GCC 13)
+# -include cstdint: Force include missing headers
+# -d: Debug mode is OFF, Release mode is ON
+RUN mkdir -p build \
+    && ./etc/Build.sh \
+    -cmake="-DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DCMAKE_CXX_STANDARD=17 \
+            -DABC_ENABLE_NOWERROR=ON \
+            -DBUILD_SPDLOG=OFF \
+            -DLINK_TIME_OPTIMIZATION=OFF \
+            -DCMAKE_CXX_FLAGS='-w -fpermissive -std=c++17 -include cstdint -include limits -include cstddef -Wno-error'" \
     && cd build \
-    && cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_CXX_STANDARD=20 \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
-        -DBUILD_DEPS=ON \
-    && make -j$(nproc) \
     && make install \
-    && rm -rf /opt/or-tools
-
-
-RUN git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git /opt/OpenROAD \
-    && cd /opt/OpenROAD \
-    && mkdir -p build \
-    && cd build \
-    && cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
-        -DCMAKE_CXX_STANDARD=17 \
-        -DABC_ENABLE_NOWERROR=ON \
-        -DCMAKE_CXX_FLAGS="-Wno-error=maybe-uninitialized -Wno-error=uninitialized" \
-        -DCMAKE_C_FLAGS="-Wno-error=maybe-uninitialized -Wno-error=uninitialized" \
-        -DPYTHON_EXECUTABLE=$(which python3) \
-    && make -j$(nproc) 2>&1 | tee build.log \
-    && make install \
-    && rm -rf /opt/OpenROAD/build/CMakeFiles \
-    && rm -rf /opt/OpenROAD/build/third-party
-    
-ENV PATH="/usr/local/bin:$PATH"
+    && ldconfig \
+    && rm -rf /opt/OpenROAD
 
 # -----------------------
-# Cleanup remaining steps (Optional, but good practice)
+# Qt5 dependencies for KLayout
 # -----------------------
-# Adjust the PATH to reflect the new install prefix.
-# The original ENV PATH="/opt/OpenROAD/build/bin:$PATH" is no longer needed 
-# if we use 'make install' which defaults to /usr/local/bin
-# (I've updated the ENV PATH below)
-ENV PATH="/opt/OpenROAD/build/bin:$PATH"
-
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        qtbase5-dev \
+        qtmultimedia5-dev \
+        libqt5xmlpatterns5-dev \
+        libqt5svg5-dev \
+        qttools5-dev \
+        qttools5-dev-tools \
+        libz-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # -----------------------
 # Build KLayout from source
 # -----------------------
-
-# Qt5 dependencies (Fedora naming)
-RUN dnf -y install \
-        qt5-qtbase \
-        qt5-qtbase-devel \
-        qt5-qtmultimedia \
-        qt5-qtmultimedia-devel \
-        qt5-qtxmlpatterns \
-        qt5-qtxmlpatterns-devel \
-        qt5-qtsvg \
-        qt5-qtsvg-devel \
-        qt5-qttools \
-        qt5-qttools-devel \
-    && dnf -y clean all \
-    && rm -rf /var/cache/dnf
-
-# Build KLayout
 RUN mkdir -p /opt/klayout \
     && cd /opt/klayout \
-    && curl -L https://www.klayout.de/building/klayout-latest.tar.gz \
+    && curl -L https://www.klayout.de/downloads/klayout-0.29.8.tar.gz \
         | tar xz --strip-components=1 \
-    && ./build.sh
+    && ./build.sh -j$(nproc) \
+    && ln -sf /opt/klayout/bin/klayout /usr/local/bin/klayout
 
-ENV PATH="/opt/klayout/bin:$PATH"
+# -----------------------
+# Final cleanup
+# -----------------------
+RUN apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/*
 
 # -----------------------
 # Default shell
