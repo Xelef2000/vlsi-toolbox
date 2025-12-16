@@ -57,6 +57,8 @@ jobs:
         platforms: linux/amd64
         push: true
         tags: ${{ steps.tags.outputs.tags }}
+        cache-from: type=registry,ref=${{ steps.tags.outputs.base_image }}:buildcache-amd64
+        cache-to: type=registry,ref=${{ steps.tags.outputs.base_image }}:buildcache-amd64,mode=max
 
     - name: Image digest
       run: |
