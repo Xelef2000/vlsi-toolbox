@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Starship via official script (non-interactive)
-RUN curl -fsSL https://starship.rs/install.sh | bash -s -- -y --bin-dir /usr/local/bin
+RUN curl -fsSL https://starship.rs/install.sh | sh -s -- -y --bin-dir /usr/local/bin
 
 # Python Tools
 RUN pip3 install --no-cache-dir apio yowasp-yosys yowasp-nextpnr-ice40
