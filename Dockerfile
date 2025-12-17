@@ -35,6 +35,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://pulp-platform.github.io/bender/
     && install -m 0755 bender /usr/local/bin/bender \
     && rm bender
 
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    qtbase5-dev qtmultimedia5-dev libqt5xmlpatterns5-dev libqt5svg5-dev \
+    qttools5-dev qttools5-dev-tools libz-dev libqt5charts5-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Build OpenROAD
 RUN git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git /opt/OpenROAD
 WORKDIR /opt/OpenROAD
