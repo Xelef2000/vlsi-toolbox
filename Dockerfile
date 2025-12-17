@@ -47,6 +47,7 @@ RUN mkdir -p build \
             -DCMAKE_CXX_STANDARD=17 \
             -DABC_ENABLE_NOWERROR=ON \
             -DBUILD_SPDLOG=OFF \
+            -DBUILD_GUI=ON \
             -DLINK_TIME_OPTIMIZATION=OFF \
             -DCMAKE_CXX_FLAGS='-w -fpermissive -std=c++17 -include cstdint -include limits -include cstddef -Wno-error'" \
     && cd build && make install && ldconfig \
