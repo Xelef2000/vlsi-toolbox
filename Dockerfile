@@ -18,13 +18,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libboost-all-dev libreadline-dev libffi-dev zlib1g-dev \
     tcl tcl-dev tk tk-dev ruby ruby-dev libgit2-dev \
     autoconf automake libtool bison flex libfl-dev gperf ca-certificates libyaml-cpp-dev \
+    gawk graphviz xdot \
     # Repo VLSI Tools
-    yosys yosys-dev iverilog verilator gtkterm urjtag magic ngspice ghdl \
+    iverilog verilator gtkterm urjtag magic ngspice ghdl \
     # Haskell
     ghc haskell-stack \
     # Qt5 (for KLayout)
     qtbase5-dev qtmultimedia5-dev libqt5xmlpatterns5-dev libqt5svg5-dev qttools5-dev qttools5-dev-tools libz-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Build Yosys (Targeting release v0.60)
+RUN git clone https://github.com/YosysHQ/yosys.git /opt/yosys \
+    && cd /opt/yosys \
+    && git checkout v0.60 \
+    && git submodule update --init --recursive \
+    && make config-gcc \
+    && make -j$(nproc) \
+    && make install \
+    && cd / \
+    && rm -rf /opt/yosys
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         zsh \
@@ -43,7 +55,6 @@ WORKDIR /tmp
 RUN curl --proto '=https' --tlsv1.2 -sSf https://pulp-platform.github.io/bender/init | sh \
     && install -m 0755 bender /usr/local/bin/bender \
     && rm bender
-
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     qtbase5-dev qtmultimedia5-dev libqt5xmlpatterns5-dev libqt5svg5-dev \
