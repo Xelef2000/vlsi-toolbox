@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Install base dev tools, repository VLSI tools, Haskell, and Qt5 dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Base Development
-    build-essential sudo g++ gcc make cmake ninja-build git wget curl tar unzip pkg-config \
+    build-essential sudo g++ gcc make cmake ninja-build git wget curl tar unzip pkg-config meson \
     perl python3 python3-pip python3-dev python3-venv nodejs npm \
     libboost-all-dev libreadline-dev libffi-dev zlib1g-dev \
     tcl tcl-dev tk tk-dev ruby ruby-dev libgit2-dev \
