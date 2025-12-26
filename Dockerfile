@@ -86,6 +86,9 @@ RUN mkdir -p /opt/klayout \
     && ./build.sh -j$(nproc) \
     && ln -sf /opt/klayout/bin/klayout /usr/local/bin/klayout
 
+# Install netlistsvg
+RUN npm install -g netlistsvg
+
 # Cleanup
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/*
 
