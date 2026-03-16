@@ -81,14 +81,6 @@ RUN BAZELISK_VERSION=v1.25.0 \
        -o /usr/local/bin/bazel \
     && chmod +x /usr/local/bin/bazel
 
-# Build Z3 (optional solver for sby)
-RUN git clone https://github.com/Z3Prover/z3.git /opt/z3 \
-    && cd /opt/z3 \
-    && bazel build //... \
-    && cp bazel-bin/z3 /usr/local/bin/ \
-    && cd / \
-    && rm -rf /opt/z3 /root/.cache/bazel
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
         zsh \
         fzf \
