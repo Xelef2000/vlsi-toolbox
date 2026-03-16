@@ -38,6 +38,57 @@ RUN git clone https://github.com/YosysHQ/yosys.git /opt/yosys \
     && cd / \
     && rm -rf /opt/yosys
 
+# Install sby prerequisites
+RUN pip3 install --no-cache-dir click
+
+# Build SymbiYosys (sby)
+RUN git clone https://github.com/YosysHQ/sby.git /opt/sby \
+    && cd /opt/sby \
+    && make install \
+    && cd / \
+    && rm -rf /opt/sby
+
+# Build Boolector (recommended solver for sby)
+RUN git clone https://github.com/boolector/boolector.git /opt/boolector \
+    && cd /opt/boolector \
+    && ./contrib/setup-btor2tools.sh \
+    && ./contrib/setup-lingeling.sh \
+    && ./configure.sh \
+    && make -C build -j$(nproc) \
+    && cp build/bin/boolector build/bin/btor* /usr/local/bin/ \
+    && cp deps/btor2tools/build/bin/btorsim /usr/local/bin/ \
+    && cd / \
+    && rm -rf /opt/boolector
+
+# Build Yices 2 (recommended solver for sby)
+RUN git clone https://github.com/SRI-CSL/yices2.git /opt/yices2 \
+    && cd /opt/yices2 \
+    && autoconf \
+    && ./configure \
+    && make -j$(nproc) \
+    && make install \
+    && cd / \
+    && rm -rf /opt/yices2
+
+# Install Bazelisk (manages Bazel versions, works on arm64/x86)
+RUN BAZELISK_VERSION=v1.25.0 \
+    && case "$(uname -m)" in \
+        x86_64) BAZELISK_ARCH=amd64 ;; \
+        aarch64) BAZELISK_ARCH=arm64 ;; \
+        *) echo "Unsupported arch" && exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/bazelbuild/bazelisk/releases/download/${BAZELISK_VERSION}/bazelisk-linux-${BAZELISK_ARCH}" \
+       -o /usr/local/bin/bazel \
+    && chmod +x /usr/local/bin/bazel
+
+# Build Z3 (optional solver for sby)
+RUN git clone https://github.com/Z3Prover/z3.git /opt/z3 \
+    && cd /opt/z3 \
+    && bazel build //... \
+    && cp bazel-bin/z3 /usr/local/bin/ \
+    && cd / \
+    && rm -rf /opt/z3 /root/.cache/bazel
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         zsh \
         fzf \
