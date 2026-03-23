@@ -20,12 +20,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     autoconf automake libtool bison flex libfl-dev gperf ca-certificates libyaml-cpp-dev \
     gawk graphviz xdot \
     # Repo VLSI Tools
-    iverilog verilator gtkterm urjtag magic ngspice ghdl \
+    iverilog gtkterm urjtag magic ngspice ghdl \
     # Haskell
     ghc haskell-stack \
     # Qt5 (for KLayout)
     qtbase5-dev qtmultimedia5-dev libqt5xmlpatterns5-dev libqt5svg5-dev qttools5-dev qttools5-dev-tools libz-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Build Verilator 4.228 (required for vrtlmod compatibility)
+RUN git clone https://github.com/verilator/verilator.git /opt/verilator \
+    && cd /opt/verilator \
+    && git checkout v4.228 \
+    && autoconf \
+    && ./configure --prefix=/usr/local \
+    && make -j$(nproc) \
+    && make install \
+    && cd / \
+    && rm -rf /opt/verilator
 
 # Build Yosys (Targeting release v0.60)
 RUN git clone https://github.com/YosysHQ/yosys.git /opt/yosys \
@@ -128,6 +139,36 @@ RUN mkdir -p /opt/klayout \
     && curl -L https://www.klayout.org/downloads/source/klayout-0.30.5.tar.gz | tar xz --strip-components=1 \
     && ./build.sh -j$(nproc) \
     && ln -sf /opt/klayout/bin/klayout /usr/local/bin/klayout
+
+# Install LLVM/Clang (required for vrtlmod)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    llvm-15-dev libclang-15-dev clang-15 libzstd-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Build SystemC 2.3.3 (required for vrtlmod)
+RUN git clone --depth 1 --branch 2.3.3 https://github.com/accellera-official/systemc.git /opt/systemc_src \
+    && cd /opt/systemc_src \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DBUILD_SHARED_LIBS=OFF \
+       -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    && cmake --build build --parallel $(nproc) --target install \
+    && cd / \
+    && rm -rf /opt/systemc_src
+
+# Build vrtlmod
+ENV SYSTEMC_HOME=/usr/local \
+    LLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm \
+    VERILATOR_ROOT=/usr/local
+RUN rm -rf /usr/local/lib/cmake/Boost* /usr/local/lib/cmake/boost* /usr/local/lib/libboost* /usr/local/include/boost \
+    && git clone --recursive --depth 1 https://github.com/tum-ei-eda/vrtlmod.git /opt/vrtlmod \
+    && cd /opt/vrtlmod \
+    && git submodule update --init --recursive \
+    && cmake -S . -B build -DLLVM_DIR=$LLVM_DIR -DVERILATOR_ROOT=$VERILATOR_ROOT -DBUILD_TESTING=OFF \
+       -DCMAKE_INSTALL_PREFIX=/usr/local \
+       -DBoost_INCLUDE_DIR=/usr/include -DBoost_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu \
+    && cmake --build build --parallel $(nproc) \
+    && cmake --build build --target install \
+    && cd / \
+    && rm -rf /opt/vrtlmod
 
 # Install netlistsvg
 RUN npm install -g netlistsvg
