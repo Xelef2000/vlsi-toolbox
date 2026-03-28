@@ -102,7 +102,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://starship.rs/install.sh | sh -s -- -y --bin-dir /usr/local/bin
 
 # Python Tools
-RUN pip3 install --no-cache-dir --ignore-installed apio yowasp-yosys yowasp-nextpnr-ice40
+RUN pip3 install --no-cache-dir --ignore-installed apio yowasp-yosys yowasp-nextpnr-ice40 go-task-bin
 
 # Bender (ETH Zurich dependency manager)
 WORKDIR /tmp
