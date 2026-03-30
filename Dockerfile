@@ -102,7 +102,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://starship.rs/install.sh | sh -s -- -y --bin-dir /usr/local/bin
 
 # Python Tools
-RUN pip3 install --no-cache-dir --ignore-installed apio yowasp-yosys yowasp-nextpnr-ice40 go-task-bin
+RUN pip3 install --no-cache-dir --ignore-installed apio yowasp-yosys yowasp-nextpnr-ice40 go-task-bin matplotlib
 
 # Bender (ETH Zurich dependency manager)
 WORKDIR /tmp
@@ -169,6 +169,11 @@ RUN rm -rf /usr/local/lib/cmake/Boost* /usr/local/lib/cmake/boost* /usr/local/li
     && cmake --build build --target install \
     && cd / \
     && rm -rf /opt/vrtlmod
+
+# Install TMRG (Triple Modular Redundancy Generator)
+RUN git clone https://gitlab.cern.ch/tmrg/tmrg.git /opt/tmrg \
+    && pip3 install --no-cache-dir /opt/tmrg \
+    && rm -rf /opt/tmrg
 
 # Install netlistsvg
 RUN npm install -g netlistsvg

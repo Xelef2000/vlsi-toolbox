@@ -70,6 +70,7 @@ distrobox create \
 * **GHDL** (VHDL)
 * **gtkterm**
 * **vrtlmod** (built from source; requires LLVM/Clang 15 and SystemC 2.3.3, both included)
+* **TMRG** (Triple Modular Redundancy Generator; installed from CERN GitLab)
 
 ### Physical design
 
