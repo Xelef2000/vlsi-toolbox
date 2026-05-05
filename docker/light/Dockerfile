@@ -2,29 +2,24 @@ FROM ubuntu:24.04
 
 ARG TARGETARCH
 
-LABEL org.opencontainers.image.title="vlsi-toolbox" \
-      org.opencontainers.image.description="Ubuntu-based VLSI/EDA toolbox (x86/ARM) for use with Distrobox"
+LABEL org.opencontainers.image.title="vlsi-toolbox-light" \
+      org.opencontainers.image.description="Ubuntu-based VLSI/EDA toolbox without GUI applications (x86/ARM) for use with Distrobox"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_BREAK_SYSTEM_PACKAGES=1 \
     LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64" \
     PATH="/usr/local/bin:$PATH"
 
-# Install base dev tools, repository VLSI tools, Haskell, and Qt5 dependencies
+# Install base dev tools and repository VLSI tools, excluding GUI-only apps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Base Development
     build-essential sudo g++ gcc make cmake ninja-build git wget curl tar unzip pkg-config meson \
     perl python3 python3-pip python3-dev python3-venv nodejs npm \
     libboost-all-dev libreadline-dev libffi-dev zlib1g-dev \
     tcl tcl-dev tk tk-dev ruby ruby-dev libgit2-dev \
     autoconf automake libtool bison flex libfl-dev gperf ca-certificates libyaml-cpp-dev \
-    gawk graphviz xdot \
-    # Repo VLSI Tools
-    iverilog gtkterm urjtag magic ngspice ghdl \
-    # Haskell
+    gawk graphviz \
+    iverilog urjtag magic ngspice ghdl \
     ghc haskell-stack \
-    # Qt5 (for KLayout)
-    qtbase5-dev qtmultimedia5-dev libqt5xmlpatterns5-dev libqt5svg5-dev qttools5-dev qttools5-dev-tools libz-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Build Verilator 4.228 (required for vrtlmod compatibility)
@@ -49,7 +44,6 @@ RUN git clone https://github.com/YosysHQ/yosys.git /opt/yosys \
     && cd / \
     && rm -rf /opt/yosys
 
-# Install sby prerequisites
 RUN pip3 install --no-cache-dir click
 
 # Build SymbiYosys (sby)
@@ -98,7 +92,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         zoxide \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Starship via official script (non-interactive)
 RUN curl -fsSL https://starship.rs/install.sh | sh -s -- -y --bin-dir /usr/local/bin
 
 # Python Tools
@@ -110,35 +103,22 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://pulp-platform.github.io/bender/
     && install -m 0755 bender /usr/local/bin/bender \
     && rm bender
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    qtbase5-dev qtmultimedia5-dev libqt5xmlpatterns5-dev libqt5svg5-dev \
-    qttools5-dev qttools5-dev-tools libz-dev libqt5charts5-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Build OpenROAD
-RUN git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD.git /opt/OpenROAD
+# Build OpenROAD 26Q2 without GUI support
+RUN git clone --recursive --depth 1 --branch 26Q2 https://github.com/The-OpenROAD-Project/OpenROAD.git /opt/OpenROAD
 WORKDIR /opt/OpenROAD
 RUN ./etc/DependencyInstaller.sh -base -common
 
-# Build with GCC 13 compatibility flags (-fpermissive, includes) and disable LTO to prevent linker crashes
 RUN mkdir -p build \
     && ./etc/Build.sh \
     -cmake="-DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_CXX_STANDARD=17 \
             -DABC_ENABLE_NOWERROR=ON \
             -DBUILD_SPDLOG=OFF \
-            -DBUILD_GUI=ON \
+            -DBUILD_GUI=OFF \
             -DLINK_TIME_OPTIMIZATION=OFF \
             -DCMAKE_CXX_FLAGS='-w -fpermissive -std=c++17 -include cstdint -include limits -include cstddef -Wno-error'" \
     && cd build && make install && ldconfig \
     && rm -rf /opt/OpenROAD
-
-# Build KLayout
-RUN mkdir -p /opt/klayout \
-    && cd /opt/klayout \
-    && curl -L https://www.klayout.org/downloads/source/klayout-0.30.5.tar.gz | tar xz --strip-components=1 \
-    && ./build.sh -j$(nproc) \
-    && ln -sf /opt/klayout/bin/klayout /usr/local/bin/klayout
 
 # Install LLVM/Clang (required for vrtlmod)
 RUN apt-get update && apt-get install -y --no-install-recommends \
