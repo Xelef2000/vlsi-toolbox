@@ -2,16 +2,22 @@
 
 Ubuntu-based **VLSI / EDA toolbox container** intended for use with **Distrobox**.
 
-This image provides a large, batteries-included environment for digital and mixed-signal VLSI work, including open-source synthesis, simulation, P&R, and layout tools. It is designed to be used *interactively* as a development environment rather than as a minimal runtime container.
+This repository publishes two Ubuntu-based containers for digital and mixed-signal VLSI work:
+
+* `vlsi-toolbox`: full image with GUI tools included
+* `vlsi-toolbox-light`: lighter image without GUI-only applications, while keeping command-line flows such as OpenROAD
+
+Both are designed to be used *interactively* as development environments with **Distrobox**.
 
 ---
 
-## 📦 Image
+## 📦 Images
 
-The image is published on GitHub Container Registry:
+The images are published on GitHub Container Registry:
 
 ```
 ghcr.io/xelef2000/vlsi-toolbox
+ghcr.io/xelef2000/vlsi-toolbox-light
 ```
 
 ### Supported architectures
@@ -30,8 +36,26 @@ latest-amd64
 latest-arm64
 ```
 
+The light image follows the same architecture-specific tag scheme on `ghcr.io/xelef2000/vlsi-toolbox-light`:
+
+```
+v1.1.1-amd64
+v1.1.1-arm64
+latest-amd64
+latest-arm64
+```
+
+Release builds also publish compatibility tags on `ghcr.io/xelef2000/vlsi-toolbox`, for example:
+
+```
+v1.1.1-light-amd64
+v1.1.1-light-arm64
+latest-light-amd64
+latest-light-arm64
+```
+
 > ⚠️ **Note**
-> There is **no multi-arch manifest**. Each image is already ~8 GB, so architectures are published separately.
+> There is **no multi-arch manifest**. Images are published separately per architecture.
 
 ---
 
@@ -41,7 +65,7 @@ This container is meant to be used with **Distrobox**
 
 ### Create the container
 
-For **amd64** hosts:
+For the full image on **amd64** hosts:
 
 ```
 distrobox create \
@@ -49,7 +73,7 @@ distrobox create \
   --image ghcr.io/xelef2000/vlsi-toolbox:latest-amd64
 ```
 
-For **arm64** hosts:
+For the full image on **arm64** hosts:
 
 ```
 distrobox create \
@@ -57,10 +81,31 @@ distrobox create \
   --image ghcr.io/xelef2000/vlsi-toolbox:latest-arm64
 ```
 
+For the light image on **amd64** hosts:
+
+```
+distrobox create \
+  --name vlsi-toolbox-light \
+  --image ghcr.io/xelef2000/vlsi-toolbox-light:latest-amd64
+```
+
+For the light image on **arm64** hosts:
+
+```
+distrobox create \
+  --name vlsi-toolbox-light \
+  --image ghcr.io/xelef2000/vlsi-toolbox-light:latest-arm64
+```
 
 ---
 
 ## 🛠️ Included toolchains
+
+### Image variants
+
+* **Full image**: includes everything below, including GUI apps such as **KLayout**, **gtkterm**, and **xdot**
+* **Light image**: removes **KLayout**, **gtkterm**, and **xdot**
+* **OpenROAD** is included in both images; in the light image it is built with `-DBUILD_GUI=OFF`
 
 ### Digital / RTL
 
@@ -68,7 +113,6 @@ distrobox create \
 * **Icarus Verilog** (`iverilog`)
 * **Verilator**
 * **GHDL** (VHDL)
-* **gtkterm**
 * **vrtlmod** (built from source; requires LLVM/Clang 15 and SystemC 2.3.3, both included)
 * **TMRG** (Triple Modular Redundancy Generator; installed from CERN GitLab)
 
@@ -76,7 +120,7 @@ distrobox create \
 
 * **OpenROAD** (built from source)
 * **Magic VLSI**
-* **KLayout** (built from source, Qt5 GUI enabled)
+* **KLayout** (full image only; built from source, Qt5 GUI enabled)
 
 ### Analog / mixed-signal
 
@@ -110,13 +154,24 @@ distrobox create \
 
 ## ⚠️ Image size
 
-This image is **large** (≈8 GB per architecture).
+The full image is **large** (≈8 GB per architecture).
 
 That is intentional:
 
 * Tools are built from source where required
 * GUI support is included
 * The goal is *completeness*, not minimal size
+
+The light image is intended to reduce size and dependency weight by removing GUI-only applications while preserving CLI-oriented implementation flows.
+
+---
+
+## 📁 Repository layout
+
+Dockerfiles now live in per-image folders:
+
+* `docker/full/Dockerfile`
+* `docker/light/Dockerfile`
 
 ---
 
