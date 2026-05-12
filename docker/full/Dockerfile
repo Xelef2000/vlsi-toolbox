@@ -181,4 +181,13 @@ RUN npm install -g netlistsvg
 # Cleanup
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/*
 
+# Build and install yosys-slang plugin
+RUN git clone --recursive https://github.com/povik/yosys-slang.git /opt/yosys-slang \
+    && cd /opt/yosys-slang \
+    && make -j$(nproc) \
+    && install -d /usr/local/share/yosys/plugins \
+    && install -m 0755 build/slang.so /usr/local/share/yosys/plugins/slang.so \
+    && cd / \
+    && rm -rf /opt/yosys-slang
+
 CMD ["/bin/bash"]
