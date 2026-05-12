@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential sudo g++ gcc make cmake ninja-build git wget curl tar unzip pkg-config meson \
     perl python3 python3-pip python3-dev python3-venv nodejs npm \
     libboost-all-dev libreadline-dev libffi-dev zlib1g-dev \
+    libopengl-dev libglx-dev libgl1-mesa-dev \
     tcl tcl-dev tk tk-dev ruby ruby-dev libgit2-dev \
     autoconf automake libtool bison flex libfl-dev gperf ca-certificates libyaml-cpp-dev \
     gawk graphviz \
@@ -110,6 +111,7 @@ RUN ./etc/DependencyInstaller.sh -base -common
 
 RUN mkdir -p build \
     && ./etc/Build.sh \
+    -no-gui \
     -cmake="-DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_CXX_STANDARD=17 \
             -DABC_ENABLE_NOWERROR=ON \
@@ -160,5 +162,14 @@ RUN npm install -g netlistsvg
 
 # Cleanup
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/*
+
+# Build and install yosys-slang plugin
+RUN git clone --recursive https://github.com/povik/yosys-slang.git /opt/yosys-slang \
+    && cd /opt/yosys-slang \
+    && make -j$(nproc) \
+    && install -d /usr/local/share/yosys/plugins \
+    && install -m 0755 build/slang.so /usr/local/share/yosys/plugins/slang.so \
+    && cd / \
+    && rm -rf /opt/yosys-slang
 
 CMD ["/bin/bash"]
